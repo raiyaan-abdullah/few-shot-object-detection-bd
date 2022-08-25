@@ -376,6 +376,34 @@ PASCAL_VOC_BASE_CATEGORIES = {
 }
 
 
+
+VISDRONE_CATEGORIES = [
+    {"color": [220, 20, 60], "isthing": 1, "id": 1, "name": "pedestrian"},
+    {"color": [119, 11, 32], "isthing": 1, "id": 2, "name": "people"},
+    {"color": [0, 0, 142], "isthing": 1, "id": 3, "name": "bicycle"},
+    {"color": [0, 0, 230], "isthing": 1, "id": 4, "name": "car"},
+    {"color": [106, 0, 228], "isthing": 1, "id": 5, "name": "van"},
+    {"color": [0, 60, 100], "isthing": 1, "id": 6, "name": "truck"},
+    {"color": [0, 80, 100], "isthing": 1, "id": 7, "name": "tricycle"},
+    {"color": [0, 0, 70], "isthing": 1, "id": 8, "name": "awning-tricycle"},
+    {"color": [0, 0, 192], "isthing": 1, "id": 9, "name": "bus"},
+    {"color": [250, 170, 30], "isthing": 1, "id": 10, "name": "motor"},
+    {"color": [100, 170, 30], "isthing": 1, "id": 11, "name": "others"},
+    {"color": [220, 220, 0], "isthing": 1, "id": 12, "name": "rickshaw"},
+    {"color": [175, 116, 175],"isthing": 1,"id": 13,"name": "leguna",},
+    {"color": [250, 0, 30], "isthing": 1, "id": 14, "name": "cng"},
+    {"color": [165, 42, 42], "isthing": 1, "id": 15, "name": "manual-van"},
+ 
+]
+
+# Novel COCO categories
+VISDRONE_NOVEL_CATEGORIES = [
+    {"color": [0, 0, 230], "isthing": 1, "id": 4, "name": "car"},
+    {"color": [175, 116, 175],"isthing": 1,"id": 13,"name": "leguna",},
+    {"color": [250, 0, 30], "isthing": 1, "id": 14, "name": "cng"},
+    {"color": [165, 42, 42], "isthing": 1, "id": 15, "name": "manual-van"},
+]
+
 def _get_coco_instances_meta():
     thing_ids = [k["id"] for k in COCO_CATEGORIES if k["isthing"] == 1]
     thing_colors = [k["color"] for k in COCO_CATEGORIES if k["isthing"] == 1]
@@ -454,12 +482,41 @@ def _get_pascal_voc_fewshot_instances_meta():
     }
     return ret
 
-def _get_visdrone_fewshot_instances_meta():
+def _get_visdrone_instances_meta():
+    thing_ids = [k["id"] for k in VISDRONE_CATEGORIES if k["isthing"] == 1]
+    thing_colors = [k["color"] for k in VISDRONE_CATEGORIES if k["isthing"] == 1]
+    assert len(thing_ids) == 15, len(thing_ids)
+    # Mapping from the incontiguous VISDRONE category id to an id in [0, 14]
+    thing_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(thing_ids)}
+    thing_classes = [k["name"] for k in VISDRONE_CATEGORIES if k["isthing"] == 1]
     ret = {
-        "thing_classes": ["pedestrian", "people" , "bicycle", "car", "van", "truck", "tricycle", "awning-tricycle", "bus", "motor", "others","rickshaw","leguna","cng","manual-van"],
-        "base_classes": ["pedestrian", "people" , "bicycle", "car", "van", "truck", "tricycle", "awning-tricycle", "bus", "motor", "others","rickshaw"],
-        "novel_classes": ["leguna","cng","manual-van"],
+        "thing_dataset_id_to_contiguous_id": thing_dataset_id_to_contiguous_id,
+        "thing_classes": thing_classes,
+        "thing_colors": thing_colors,
     }
+    return ret
+
+def _get_visdrone_fewshot_instances_meta():
+    ret = _get_visdrone_instances_meta()
+    novel_ids = [k["id"] for k in VISDRONE_NOVEL_CATEGORIES if k["isthing"] == 1]
+    novel_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(novel_ids)}
+    novel_classes = [
+        k["name"] for k in VISDRONE_NOVEL_CATEGORIES if k["isthing"] == 1
+    ]
+    base_categories = [
+        k
+        for k in VISDRONE_CATEGORIES
+        if k["isthing"] == 1 and k["name"] not in novel_classes
+    ]
+    base_ids = [k["id"] for k in base_categories]
+    base_dataset_id_to_contiguous_id = {k: i for i, k in enumerate(base_ids)}
+    base_classes = [k["name"] for k in base_categories]
+    ret[
+        "novel_dataset_id_to_contiguous_id"
+    ] = novel_dataset_id_to_contiguous_id
+    ret["novel_classes"] = novel_classes
+    ret["base_dataset_id_to_contiguous_id"] = base_dataset_id_to_contiguous_id
+    ret["base_classes"] = base_classes
     return ret
 
 def _get_builtin_metadata(dataset_name):
@@ -473,6 +530,8 @@ def _get_builtin_metadata(dataset_name):
         return _get_lvis_fewshot_instances_meta_v0_5()
     elif dataset_name == "pascal_voc_fewshot":
         return _get_pascal_voc_fewshot_instances_meta()
+    elif dataset_name == "visdrone":
+        return _get_visdrone_instances_meta()
     elif dataset_name == "visdrone_fewshot":
         return _get_visdrone_fewshot_instances_meta()
     raise KeyError("No built-in metadata for dataset {}".format(dataset_name))

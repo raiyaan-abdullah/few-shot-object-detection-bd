@@ -1,4 +1,4 @@
-# flake8: noqa
+ # flake8: noqa
 import fvcore.nn.weight_init as weight_init
 import numpy as np
 import torch
@@ -6,6 +6,8 @@ from detectron2.layers import Conv2d, ShapeSpec, get_norm
 from detectron2.utils.registry import Registry
 from torch import nn
 from torch.nn import functional as F
+
+from .vocabulary_layer_tf_pytorch import VocabModel
 
 ROI_BOX_HEAD_REGISTRY = Registry("ROI_BOX_HEAD")
 ROI_BOX_HEAD_REGISTRY.__doc__ = """
@@ -47,6 +49,8 @@ class FastRCNNConvFCHead(nn.Module):
             input_shape.width,
         )
 
+        
+
         self.conv_norm_relus = []
         for k in range(num_conv):
             conv = Conv2d(
@@ -78,14 +82,26 @@ class FastRCNNConvFCHead(nn.Module):
         for layer in self.fcs:
             weight_init.c2_xavier_fill(layer)
 
+        self.vocab_model = VocabModel()    
+
     def forward(self, x):
+        #print("Box head.py before: ",x.shape)
+
         for layer in self.conv_norm_relus:
             x = layer(x)
+
+        #print("Box head.py after conv: ",x.shape)
         if len(self.fcs):
             if x.dim() > 2:
                 x = torch.flatten(x, start_dim=1)
             for layer in self.fcs:
                 x = F.relu(layer(x))
+        #print("Box head.py after fc: ",x.shape)
+        
+        #x= self.vocab_model(x)
+        #print(x)
+        #print("Box head.py after vocablayer: ",x.shape)
+        
         return x
 
     @property

@@ -7,6 +7,7 @@ from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
 from fsdet.utils.file_io import PathManager
 from pycocotools.coco import COCO
+import json
 
 """
 This file contains functions to parse COCO-format annotations into dicts in "Detectron2 format".
@@ -117,7 +118,11 @@ def load_coco_json(json_file, image_root, metadata, dataset_name):
                     objs.append(obj)
             record["annotations"] = objs
             dataset_dicts.append(record)
-
+    # the json file where the output is stored
+    out_file = open("coco-meta-file.json", "w")
+    json.dump(dataset_dicts, out_file, indent = 6)
+    out_file.close()
+    
     return dataset_dicts
 
 

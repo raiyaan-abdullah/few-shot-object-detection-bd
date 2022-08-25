@@ -1,90 +1,148 @@
-# -*- coding: utf-8 -*-
-"""
-Spyder Editor
-
-This is a temporary script file.
-"""
-
+import contextlib
+import io
 import os
-import cv2
+
+import numpy as np
 from detectron2.data import DatasetCatalog, MetadataCatalog
 from detectron2.structures import BoxMode
+from fsdet.utils.file_io import PathManager
+from pycocotools.coco import COCO
+import json
 
-dataset = "/home/raiyaan/VisDrone/VisDrone2019-DET-train/VisDrone2019-DET-train/annotations"
-images = "/home/raiyaan/VisDrone/VisDrone2019-DET-train/VisDrone2019-DET-train/images"
+"""
+This file contains functions to parse COCO-format annotations into dicts in "Detectron2 format".
+"""
 
-def load_visdrone(name, thing_classes):
-    data = []
+
+__all__ = ["register_meta_visdrone"]
+
+
+def load_visdrone_json(json_file, image_root, metadata, dataset_name):
+    """
+    Load a json file with COCO's instances annotation format.
+    Currently supports instance detection.
+    Args:
+        json_file (str): full path to the json file in COCO instances annotation format.
+        image_root (str): the directory where the images in this json file exists.
+        metadata: meta data associated with dataset_name
+        dataset_name (str): the name of the dataset (e.g., coco_2017_train).
+            If provided, this function will also put "thing_classes" into
+            the metadata associated with this dataset.
+    Returns:
+        list[dict]: a list of dicts in Detectron2 standard format. (See
+        `Using Custom Datasets </tutorials/datasets.html>`_ )
+    Notes:
+        1. This function does not read the image files.
+           The results do not have the "image" field.
+    """
+    is_shots = "shot" in dataset_name
+    if is_shots:
+        fileids = {}
+        split_dir = os.path.join("datasets", "visdronesplit")
+        if "seed" in dataset_name:
+            shot = dataset_name.split("_")[-2].split("shot")[0]
+            seed = int(dataset_name.split("_seed")[-1])
+            split_dir = os.path.join(split_dir, "seed{}".format(seed))
+        else:
+            shot = dataset_name.split("_")[-1].split("shot")[0]
+        for idx, cls in enumerate(metadata["thing_classes"]):
+            json_file = os.path.join(
+                split_dir, "full_box_{}shot_{}_trainval.json".format(shot, cls)
+            )
+            json_file = PathManager.get_local_path(json_file)
+            with contextlib.redirect_stdout(io.StringIO()):
+                visdrone_api = COCO(json_file)
+            img_ids = sorted(list(visdrone_api.imgs.keys()))
+            imgs = visdrone_api.loadImgs(img_ids)
+            anns = [visdrone_api.imgToAnns[img_id] for img_id in img_ids]
+            fileids[idx] = list(zip(imgs, anns))
+    else:
+        json_file = PathManager.get_local_path(json_file)
+        with contextlib.redirect_stdout(io.StringIO()):
+            visdrone_api = COCO(json_file)
+        # sort indices for reproducible results
+        img_ids = sorted(list(visdrone_api.imgs.keys()))
+        imgs = visdrone_api.loadImgs(img_ids)
+        anns = [visdrone_api.imgToAnns[img_id] for img_id in img_ids]
+        imgs_anns = list(zip(imgs, anns))
+    id_map = metadata["thing_dataset_id_to_contiguous_id"]
+
+    dataset_dicts = []
+    ann_keys = ["iscrowd", "bbox", "category_id"]
+
+    if is_shots:
+        for _, fileids_ in fileids.items():
+            dicts = []
+            for (img_dict, anno_dict_list) in fileids_:
+                for anno in anno_dict_list:
+                    record = {}
+                    record["file_name"] = os.path.join(
+                        image_root, img_dict["file_name"]
+                    )
+                    record["height"] = img_dict["height"]
+                    record["width"] = img_dict["width"]
+                    image_id = record["image_id"] = img_dict["id"]
+
+                    assert anno["image_id"] == image_id
+                    assert anno.get("ignore", 0) == 0
+
+                    obj = {key: anno[key] for key in ann_keys if key in anno}
+
+                    obj["bbox_mode"] = BoxMode.XYWH_ABS
+                    obj["category_id"] = id_map[obj["category_id"]]
+                    record["annotations"] = [obj]
+                    dicts.append(record)
+            if len(dicts) > int(shot):
+                dicts = np.random.choice(dicts, int(shot), replace=False)
+            dataset_dicts.extend(dicts)
+    else:
+        for (img_dict, anno_dict_list) in imgs_anns:
+            record = {}
+            record["file_name"] = os.path.join(
+                image_root, img_dict["file_name"]
+            )
+            record["height"] = img_dict["height"]
+            record["width"] = img_dict["width"]
+            image_id = record["image_id"] = img_dict["id"]
+
+            objs = []
+            for anno in anno_dict_list:
+                assert anno["image_id"] == image_id
+                assert anno.get("ignore", 0) == 0
+
+                obj = {key: anno[key] for key in ann_keys if key in anno}
+
+                obj["bbox_mode"] = BoxMode.XYWH_ABS
+                if obj["category_id"] in id_map:
+                    obj["category_id"] = id_map[obj["category_id"]]
+                    objs.append(obj)
+            record["annotations"] = objs
+            dataset_dicts.append(record)
+    # the json file where the output is stored
+    out_file = open("visdrone-meta-file.json", "w")
+    json.dump(dataset_dicts, out_file, indent = 6)
+    out_file.close()
     
-    count = 0
-    
-    for file in os.listdir(dataset):
-        file_path=os.path.join(dataset, file)
-        
-        annotation_file= open(file_path,'r')
-        #print (file)
-        lines = annotation_file.readlines()
-        image_file = file[:-3]+"jpg"
-        image_file_path=os.path.join(images, image_file)
-        
-        
-        im = cv2.imread(image_file_path)
+    return dataset_dicts
 
-        image_annotation = {
-            "file_name" : image_file_path, # full path to image
-            "image_id" :  count, # image unique ID
-            "height" : im.shape[0], # height of image
-            "width" : im.shape[1], # width of image 
-        }
-        
-        annotations = []
-        
-        for line in lines:
-            
-            array=line.strip().split(",")
-            #print(array)
-            if len(array) > 8: #some annotations have an extra comma at the end
-                array.pop()
-            array = [int(i) for i in array]
-   
-            #print(array)
-            
-            if array[5] != 0:
 
-                single_annotation = {
-                    "category_id" : array[5]-1,#ignored regions are omitted so -1
-                    "bbox" : [array[0], array[1], array[2], array[3]], # bbox coordinates
-                    "bbox_mode" : BoxMode.XYWH_ABS, # bbox mode, depending on your format
-                    
-                }
-            annotations.append(single_annotation)    
-        image_annotation["annotations"] = annotations
-            
-        #ignored regions are omitted
-        data.append(image_annotation)
-        count += 1
-    print("Visdrone data loaded")    
-    return data
-
-def register_meta_visdrone(name, thing_classes, metadata):
-    # register dataset (step 1)
+def register_meta_visdrone(name, metadata, imgdir, annofile):
     DatasetCatalog.register(
-        name, # name of dataset, this will be used in the config file
-        lambda: load_visdrone( # this calls your dataset loader to get the data
-            name, thing_classes, # inputs to your dataset loader
-        ),
+        name,
+        lambda: load_visdrone_json(annofile, imgdir, metadata, name),
     )
 
-    # register meta information (step 2)
+    if "_base" in name or "_novel" in name:
+        split = "base" if "_base" in name else "novel"
+        metadata["thing_dataset_id_to_contiguous_id"] = metadata[
+            "{}_dataset_id_to_contiguous_id".format(split)
+        ]
+        metadata["thing_classes"] = metadata["{}_classes".format(split)]
+
     MetadataCatalog.get(name).set(
-        thing_classes=metadata["thing_classes"], # all classes
-        base_classes=metadata["base_classes"], # base classes
-        novel_classes=metadata["novel_classes"], # novel classes
+        json_file=annofile,
+        image_root=imgdir,
+        evaluator_type="visdrone",
+        dirname="datasets/visdrone",
+        **metadata,
     )
-    MetadataCatalog.get(name).evaluator_type = "visdrone" # set evaluator
-    
-
-    
-
-
-

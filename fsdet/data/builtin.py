@@ -94,9 +94,12 @@ def register_all_coco(root="datasets"):
             "coco/trainval2014",
             "cocosplit/datasplit/trainvalno5k.json",
         ),
-        ("coco_test_all", "coco/val2014", "cocosplit/datasplit/5k.json"),
-        ("coco_test_base", "coco/val2014", "cocosplit/datasplit/5k.json"),
-        ("coco_test_novel", "coco/val2014", "cocosplit/datasplit/5k.json"),
+        # ("coco_test_all", "coco/val2014", "cocosplit/datasplit/5k.json"),
+        # ("coco_test_base", "coco/val2014", "cocosplit/datasplit/5k.json"),
+        # ("coco_test_novel", "coco/val2014", "cocosplit/datasplit/5k.json"),
+        ("coco_test_all", "coco/trainval2014", "cocosplit/datasplit/5k.json"),
+        ("coco_test_base", "coco/trainval2014", "cocosplit/datasplit/5k.json"),
+        ("coco_test_novel", "coco/trainval2014", "cocosplit/datasplit/5k.json"),
     ]
 
     # register small meta datasets for fine-tuning stage
@@ -263,16 +266,41 @@ def register_all_pascal_voc(root="datasets"):
         )
         MetadataCatalog.get(name).evaluator_type = "pascal_voc"
 
-def register_all_visdrone(root="datasets"):
-    metadata = _get_builtin_metadata("visdrone_fewshot")
 
-    datasets = {
-    'dataset_all': metadata["thing_classes"],
-    'dataset_base': metadata["base_classes"],
-    'dataset_novel': metadata["novel_classes"],
-    }
-    for dataset_name, classes in datasets.items():
-        register_meta_visdrone(dataset_name, classes, metadata)
+
+
+
+def register_all_visdrone(root="datasets"):
+
+    # register meta datasets
+    METASPLITS = [
+        (
+            "visdrone_train_base",
+            "visdrone/train",
+            "visdrone/annotations/instances-train-visdrone.json",
+        ),
+        (
+            "visdrone_val_base",
+            "visdrone/val",
+            "visdrone/annotations/instances-val-visdrone.json",
+        ),
+    ]
+
+    # register small meta datasets for fine-tuning stage
+    # for prefix in ["all", "novel"]:
+    #     for shot in [1, 2, 3, 5, 10, 30]:
+    #         for seed in range(10):
+    #             seed = "" if seed == 0 else "_seed{}".format(seed)
+    #             name = "coco_trainval_{}_{}shot{}".format(prefix, shot, seed)
+    #             METASPLITS.append((name, "coco/trainval2014", ""))
+
+    for name, imgdir, annofile in METASPLITS:
+        register_meta_visdrone(
+            name,
+            _get_builtin_metadata("visdrone_fewshot"),
+            os.path.join(root, imgdir),
+            os.path.join(root, annofile),
+        )
 
 # Register them all under "./datasets"
 register_all_coco()

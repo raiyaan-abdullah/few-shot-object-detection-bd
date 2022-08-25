@@ -375,7 +375,8 @@ class FastRCNNOutputLayers(nn.Module):
                 Example box dimensions: 4 for regular XYXY boxes and 5 for rotated XYWHA boxes
         """
         super(FastRCNNOutputLayers, self).__init__()
-
+        #print("Fast rcnn class input size: ",input_size)
+        #input_size=65
         if not isinstance(input_size, int):
             input_size = np.prod(input_size)
 
@@ -383,6 +384,7 @@ class FastRCNNOutputLayers(nn.Module):
         # background class
         # (hence + 1)
         self.cls_score = nn.Linear(input_size, num_classes + 1)
+        #print("Number of classes: ",num_classes)
         num_bbox_reg_classes = 1 if cls_agnostic_bbox_reg else num_classes
         self.bbox_pred = nn.Linear(input_size, num_bbox_reg_classes * box_dim)
 
@@ -393,7 +395,7 @@ class FastRCNNOutputLayers(nn.Module):
 
     def forward(self, x):
         if x.dim() > 2:
-            x = torch.flatten(x, start_dim=1)
+            x = torch.flatten(x, start_dim=1)   
         scores = self.cls_score(x)
         proposal_deltas = self.bbox_pred(x)
         return scores, proposal_deltas

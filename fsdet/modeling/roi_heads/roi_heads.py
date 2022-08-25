@@ -274,7 +274,7 @@ class ROIHeads(torch.nn.Module):
         """
         raise NotImplementedError()
 
-
+#is this function being used?
 @ROI_HEADS_REGISTRY.register()
 class Res5ROIHeads(ROIHeads):
     """
@@ -473,6 +473,7 @@ class StandardROIHeads(ROIHeads):
             features, [x.proposal_boxes for x in proposals]
         )
         box_features = self.box_head(box_features)
+        #print("ROI heads.py Box features: ",box_features.shape)
         pred_class_logits, pred_proposal_deltas = self.box_predictor(
             box_features
         )

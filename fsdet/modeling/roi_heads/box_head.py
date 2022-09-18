@@ -39,6 +39,7 @@ class FastRCNNConvFCHead(nn.Module):
         conv_dim   = cfg.MODEL.ROI_BOX_HEAD.CONV_DIM
         num_fc     = cfg.MODEL.ROI_BOX_HEAD.NUM_FC
         fc_dim     = cfg.MODEL.ROI_BOX_HEAD.FC_DIM
+        ##print("Box head FC dim: ",fc_dim)
         norm       = cfg.MODEL.ROI_BOX_HEAD.NORM
         # fmt: on
         assert num_conv + num_fc > 0
@@ -86,10 +87,10 @@ class FastRCNNConvFCHead(nn.Module):
 
     def forward(self, x):
         #print("Box head.py before: ",x.shape)
-
+        
         for layer in self.conv_norm_relus:
             x = layer(x)
-
+        
         #print("Box head.py after conv: ",x.shape)
         if len(self.fcs):
             if x.dim() > 2:
@@ -98,8 +99,7 @@ class FastRCNNConvFCHead(nn.Module):
                 x = F.relu(layer(x))
         #print("Box head.py after fc: ",x.shape)
         
-        #x= self.vocab_model(x)
-        #print(x)
+        x= self.vocab_model(x)
         #print("Box head.py after vocablayer: ",x.shape)
         
         return x

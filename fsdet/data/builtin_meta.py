@@ -399,9 +399,9 @@ VISDRONE_CATEGORIES = [
 # Novel COCO categories
 VISDRONE_NOVEL_CATEGORIES = [
     {"color": [0, 0, 230], "isthing": 1, "id": 4, "name": "car"},
-    {"color": [175, 116, 175],"isthing": 1,"id": 13,"name": "leguna",},
+    {"color": [0, 60, 100], "isthing": 1, "id": 6, "name": "truck"},
+    {"color": [220, 220, 0], "isthing": 1, "id": 12, "name": "rickshaw"},
     {"color": [250, 0, 30], "isthing": 1, "id": 14, "name": "cng"},
-    {"color": [165, 42, 42], "isthing": 1, "id": 15, "name": "manual-van"},
 ]
 
 def _get_coco_instances_meta():

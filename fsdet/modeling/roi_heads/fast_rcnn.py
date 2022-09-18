@@ -375,16 +375,15 @@ class FastRCNNOutputLayers(nn.Module):
                 Example box dimensions: 4 for regular XYXY boxes and 5 for rotated XYWHA boxes
         """
         super(FastRCNNOutputLayers, self).__init__()
-        #print("Fast rcnn class input size: ",input_size)
-        #input_size=65
+        
+
         if not isinstance(input_size, int):
             input_size = np.prod(input_size)
-
+        input_size= 60
         # The prediction layer for num_classes foreground classes and one
         # background class
         # (hence + 1)
         self.cls_score = nn.Linear(input_size, num_classes + 1)
-        #print("Number of classes: ",num_classes)
         num_bbox_reg_classes = 1 if cls_agnostic_bbox_reg else num_classes
         self.bbox_pred = nn.Linear(input_size, num_bbox_reg_classes * box_dim)
 

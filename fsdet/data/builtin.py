@@ -275,12 +275,27 @@ def register_all_visdrone(root="datasets"):
     # register meta datasets
     METASPLITS = [
         (
+            "visdrone_train_all",
+            "visdrone/train",
+            "visdrone/annotations/instances-train-visdrone.json",
+        ),
+        (
             "visdrone_train_base",
             "visdrone/train",
             "visdrone/annotations/instances-train-visdrone.json",
         ),
         (
+            "visdrone_val_all",
+            "visdrone/val",
+            "visdrone/annotations/instances-val-visdrone.json",
+        ),
+        (
             "visdrone_val_base",
+            "visdrone/val",
+            "visdrone/annotations/instances-val-visdrone.json",
+        ),
+        (
+            "visdrone_val_novel",
             "visdrone/val",
             "visdrone/annotations/instances-val-visdrone.json",
         ),
@@ -293,6 +308,14 @@ def register_all_visdrone(root="datasets"):
     #             seed = "" if seed == 0 else "_seed{}".format(seed)
     #             name = "coco_trainval_{}_{}shot{}".format(prefix, shot, seed)
     #             METASPLITS.append((name, "coco/trainval2014", ""))
+
+    # register small meta datasets for fine-tuning stage
+    for prefix in ["all", "novel"]:
+        for shot in [1, 2, 3, 5, 10, 30]:
+            for seed in range(10):
+                seed = "" if seed == 0 else "_seed{}".format(seed)
+                name = "visdrone_train_{}_{}shot{}".format(prefix, shot, seed)
+                METASPLITS.append((name, "visdrone/train", ""))
 
     for name, imgdir, annofile in METASPLITS:
         register_meta_visdrone(

@@ -417,6 +417,7 @@ class StandardROIHeads(ROIHeads):
             sampling_ratio=sampling_ratio,
             pooler_type=pooler_type,
         )
+        
         # Here we split "box head" and "box predictor", which is mainly due to historical reasons.
         # They are used together so the "box predictor" layers should be part of the "box head".
         # New subclasses of ROIHeads do not need "box predictor"s.
@@ -435,6 +436,7 @@ class StandardROIHeads(ROIHeads):
             self.num_classes,
             self.cls_agnostic_bbox_reg,
         )
+        ##print("ROI heads.py output size: ",self.box_head.output_size)
 
     def forward(self, images, features, proposals, targets=None):
         """
@@ -472,13 +474,14 @@ class StandardROIHeads(ROIHeads):
         box_features = self.box_pooler(
             features, [x.proposal_boxes for x in proposals]
         )
+        #print("ROI heads.py Box features before box head: ",box_features.shape)
         box_features = self.box_head(box_features)
-        #print("ROI heads.py Box features: ",box_features.shape)
+        #print("ROI heads.py Box features after box head: ",box_features.shape)
         pred_class_logits, pred_proposal_deltas = self.box_predictor(
             box_features
         )
         del box_features
-
+        ##print("ROI heads.py pred_class_logits: ",pred_class_logits.shape," ROI heads.py pred_proposal_deltas: ",pred_proposal_deltas.shape)
         outputs = FastRCNNOutputs(
             self.box2box_transform,
             pred_class_logits,

@@ -98,8 +98,10 @@ class FastRCNNConvFCHead(nn.Module):
             for layer in self.fcs:
                 x = F.relu(layer(x))
         #print("Box head.py after fc: ",x.shape)
+
+        #commented for visdrone data
+        #x= self.vocab_model(x) 
         
-        x= self.vocab_model(x)
         #print("Box head.py after vocablayer: ",x.shape)
         
         return x

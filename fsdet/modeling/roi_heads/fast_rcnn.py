@@ -379,7 +379,10 @@ class FastRCNNOutputLayers(nn.Module):
 
         if not isinstance(input_size, int):
             input_size = np.prod(input_size)
-        input_size= 60
+
+        #commented for visdrone data
+        #input_size= 60
+
         # The prediction layer for num_classes foreground classes and one
         # background class
         # (hence + 1)
